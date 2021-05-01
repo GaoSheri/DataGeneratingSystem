@@ -1,9 +1,11 @@
 package com.java.datageneratingsystem.util.kmeans;
 
+import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 
 import java.util.*;
 
+@Component
 public class MyKmeansUtil {
     public void doKmeans(int k, KmeansData data) {
         // 进行 k-means 算法的入口
@@ -38,6 +40,10 @@ public class MyKmeansUtil {
                 // 遍历每一个样本记录新中心点下的标记情况
                 newLabels[i] = markSample(sampleSet[i], newCenters);
             }
+            if (Arrays.equals(newLabels, labels)) {
+                // 两次分组情况一致
+                break;
+            }
             centers = newCenters;
             labels = newLabels;
             newCenters = updateCenters(labels, sampleSet, centers);
@@ -45,11 +51,11 @@ public class MyKmeansUtil {
         Integer[] labelsCounts = separateLabels(newLabels, k);
         for (int i = 0; i < k; i++) {
             // 输出 k 个分类的信息结果
-            System.out.println("Category " + (i + 1) + " :");
+            System.out.println("\n\nCategory " + (i + 1) + " :");
             System.out.print("Center : ");
             Arrays.stream(centers.get(i))
                     .forEach(dim -> System.out.print(dim + " "));
-            System.out.println("\nCounts : " + labelsCounts[i] + "\n\n");
+            System.out.println("\nCounts : " + labelsCounts[i]);
         }
     }
 
@@ -106,8 +112,6 @@ public class MyKmeansUtil {
         // 为传入的单个样本标记归属中心点
         int dim = sample.length;
         double dist = Double.MAX_VALUE;
-        StopWatch stopWatch = new StopWatch();
-        stopWatch.start();
         int index = 0, result = 0;
         for (Double[] center : centers) {
             double temp = 0.0D;
@@ -121,8 +125,6 @@ public class MyKmeansUtil {
             }
             index++;
         }
-        stopWatch.stop();
-        System.out.println("||markSample|| cost time : " + stopWatch.getLastTaskTimeMillis());
         return result;
     }
 
@@ -130,7 +132,7 @@ public class MyKmeansUtil {
         // 返回选取的中心点的下标
         // TODO: 创建规则约束随机点之间的距离下限
         int bound = data.length;
-        double range = data.maxValue - data.minValue;
+//        double range = data.maxValue - data.minValue;
 
         Random random = new Random();
         Set<Integer> chosenIndex = new HashSet<>();

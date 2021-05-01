@@ -12,9 +12,8 @@ public class KmeansData {
     public Double maxValue;
     public Double minValue;
 
-    public KmeansData(Double[][] sample, double[][] data, int length, int dim) {
+    public KmeansData(Double[][] sample, int length, int dim) {
         this.sample = sample;
-        this.data = data;
         this.length = length;
         this.dim = dim;
     }
