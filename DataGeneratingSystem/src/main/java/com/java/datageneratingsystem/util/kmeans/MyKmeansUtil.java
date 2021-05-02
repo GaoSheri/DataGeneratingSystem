@@ -2,6 +2,8 @@ package com.java.datageneratingsystem.util.kmeans;
 
 import org.springframework.stereotype.Component;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.*;
 
 @Component
@@ -9,6 +11,8 @@ public class MyKmeansUtil {
 
     KmeansResult kmeansResult;
     KmeansData data;
+
+    private List<Double> eList;
 
     public KmeansResult getKmeansResult() {
         return kmeansResult;
@@ -18,21 +22,47 @@ public class MyKmeansUtil {
     public void doKmeans(int k, KmeansData data, int attempt) {
         this.data = data;
         Double minE = Double.MAX_VALUE;
+        List<Double> list = new ArrayList<>(attempt);
         for (int i = 0; i < attempt; i++) {
             System.out.println("==== attempt " + i + " ====");
             double temp = doKmeans(k);
+            list.add(temp);
             if (temp <= minE) {
                 kmeansResult = data.result;
                 minE = temp;
             } // 当 E 值更小的时候，将结果保存在 kmeansResult 中
         }
+        eList = list;
 
         System.out.println(
                 "============================\n" +
-                        "============================\n" +
-                        "==== Final Result Below ====\n" +
-                        " -- E: " + minE + " --");
+                "============================\n" +
+                "==== Final Result Below ====\n" +
+                " -- E: " + minE + " --");
         kmeansResult.print();
+
+        // E value analysis
+        Map<Double, Integer> eMap = new TreeMap<>();
+//        List<Double> noRepeatE = new ArrayList<>(eList.size());
+//        Integer[] eCounts = new Integer[eList.size()];
+        DecimalFormat df = new DecimalFormat("0.000000");
+        for (Double d : eList) {
+            Double e = Double.valueOf(df.format(d));
+            if (!eMap.containsKey(e)) {
+                eMap.put(e, 0);
+            }
+            eMap.put(e, eMap.get(e) + 1);
+        } // count every E values show up times
+        System.out.println(
+                "=====================\n" +
+                "==== E statistic ====\n" +
+                "=====================\n");
+        System.out.println(" -- How Many Different E: " + eMap.size() + " --\n");
+        eMap.forEach((key, value) -> {
+            System.out.println(" - " + key +": " + value + "/" + attempt +"\n");
+        });
+
+
     }
 
     private Double doKmeans(int k) {
@@ -81,6 +111,7 @@ public class MyKmeansUtil {
             Collections.copy(centers, newCenters);
             labels = Arrays.copyOf(newLabels, newLabels.length);
             newCenters = updateCenters(labels, sampleSet, k);
+            times++;
         }
 
         KmeansResult result = new KmeansResult(k, data.length);
