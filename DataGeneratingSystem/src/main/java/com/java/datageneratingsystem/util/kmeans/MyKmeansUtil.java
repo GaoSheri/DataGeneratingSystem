@@ -1,21 +1,48 @@
 package com.java.datageneratingsystem.util.kmeans;
 
 import org.springframework.stereotype.Component;
-import org.springframework.util.StopWatch;
 
 import java.util.*;
 
 @Component
 public class MyKmeansUtil {
-    public void doKmeans(int k, KmeansData data) {
-        // 进行 k-means 算法的入口
+
+    KmeansResult kmeansResult;
+    KmeansData data;
+
+    public KmeansResult getKmeansResult() {
+        return kmeansResult;
+    }
+
+    // 对外入口
+    public void doKmeans(int k, KmeansData data, int attempt) {
+        this.data = data;
+        Double minE = Double.MAX_VALUE;
+        for (int i = 0; i < attempt; i++) {
+            System.out.println("==== attempt " + i + " ====");
+            double temp = doKmeans(k);
+            if (temp <= minE) {
+                kmeansResult = data.result;
+                minE = temp;
+            } // 当 E 值更小的时候，将结果保存在 kmeansResult 中
+        }
+
+        System.out.println(
+                "============================\n" +
+                        "============================\n" +
+                        "==== Final Result Below ====\n" +
+                        " -- E: " + minE + " --");
+        kmeansResult.print();
+    }
+
+    private Double doKmeans(int k) {
 
         // Step 1: 随机选取 k 个中心点
         List<Integer> centersIndex = randomPickCenters(k, data);
         Double[][] sampleSet = data.sample;
         List<Double[]> centers = new ArrayList<>();
-        for (Integer integer : centersIndex) {
-            centers.add(sampleSet[integer]);
+        for (Integer i : centersIndex) {
+            centers.add(sampleSet[i]);
         }
 
         // Step 2: 分类
@@ -29,34 +56,67 @@ public class MyKmeansUtil {
             // 依次计算并标记每个样本归属于哪个中心点
             labels[i] = markSample(sampleSet[i], centers);
         }
+//        System.out.println("\n\n-- initial marking done --\n\n");
 
         //Step 3: 迭代
-        List<Double[]> newCenters = updateCenters(labels, sampleSet, centers);
+        List<Double[]> newCenters = updateCenters(labels, sampleSet, k);
+//        System.out.println("\n\n-- initial updateCenters() done --\n\n");
         Integer[] newLabels = new Integer[data.length];
+        int times = 1;
 
-        while (newCenters != null) {
+        while (true) {
             // 接连两次分组情况并不一致则继续循环
+//            System.out.println("\n\n---- No." + times + " ----\n");
             for (int i = 0; i < data.length; i++) {
                 // 遍历每一个样本记录新中心点下的标记情况
                 newLabels[i] = markSample(sampleSet[i], newCenters);
             }
-            if (Arrays.equals(newLabels, labels)) {
+//            System.out.println("\n\n-- No." + times++ + " mark done --\n\n");
+            if (checkLabels(newLabels, labels)) {
+                System.out.println("---- No." + times + " ----\n");
+                System.out.println(" -- labels grouping same twice --\n\n");
                 // 两次分组情况一致
                 break;
             }
-            centers = newCenters;
-            labels = newLabels;
-            newCenters = updateCenters(labels, sampleSet, centers);
+            Collections.copy(centers, newCenters);
+            labels = Arrays.copyOf(newLabels, newLabels.length);
+            newCenters = updateCenters(labels, sampleSet, k);
         }
-        Integer[] labelsCounts = separateLabels(newLabels, k);
-        for (int i = 0; i < k; i++) {
-            // 输出 k 个分类的信息结果
-            System.out.println("\n\nCategory " + (i + 1) + " :");
-            System.out.print("Center : ");
-            Arrays.stream(centers.get(i))
-                    .forEach(dim -> System.out.print(dim + " "));
-            System.out.println("\nCounts : " + labelsCounts[i]);
+
+        KmeansResult result = new KmeansResult(k, data.length);
+        result.labels = newLabels;
+        result.finalCenters = newCenters;
+        result.times = times;
+        result.labelsCount = separateLabels(newLabels, k);
+        data.result = result;
+//        result.print();
+
+        // 计算 E
+        Double e = 0.0D;
+        for (Double[] doubles : sampleSet) {
+            for (int j = 0; j < k; j++) {
+                e += distance(doubles, newCenters.get(j), data.dim);
+            }
         }
+        System.out.println("-- E: " + e + " --\n\n");
+        return e;
+    }
+
+    private Double distance(Double[] pa, Double[] pb, int dim) {
+        // 欧氏距离
+        double temp = 0.0D;
+        for (int i = 0; i < dim; i++) {
+            temp += Math.pow(pa[i] - pb[i], 2);
+        }
+        return Math.sqrt(temp);
+    }
+
+    private Boolean checkLabels(Integer[] newLabels, Integer[] oldLabels) {
+        // 顺序与值皆一致则返回 true
+        for (int i = 0; i < newLabels.length; i++) {
+            if (!newLabels[i].equals(oldLabels[i])) return false;
+        }
+        return true;
     }
 
     private Integer[] separateLabels(Integer[] newLabels, int k) {
@@ -70,13 +130,13 @@ public class MyKmeansUtil {
         return result;
     }
 
-    private List<Double[]> updateCenters(Integer[] labels, Double[][] sampleSet, List<Double[]> centers) {
+    private List<Double[]> updateCenters(Integer[] labels, Double[][] sampleSet, int k) {
         // 按当前的标记情况，更新中心点集合（不一定是样本点）
         // 返回更新后的 centers
         int dim = sampleSet[0].length;
 
         List<Double[]> result = new LinkedList<>();
-        List<Set<Double[]>> groupedSamples = separateSamples(labels, sampleSet, centers.size());
+        List<Set<Double[]>> groupedSamples = separateSamples(labels, sampleSet, k);
         for (Set<Double[]> group : groupedSamples) {
             Double[] center = new Double[dim];
             for (int j = 0; j < dim; j++) {
@@ -89,10 +149,11 @@ public class MyKmeansUtil {
             }
             result.add(center);
         }
-        if (new HashSet<>(result).equals(new HashSet<>(centers))) {
-            // 两次的中心点一致，即分组结果也会一致
-            return null;
-        }
+//        System.out.println("||updateCenters|| new centers : ");
+//        result.forEach(center -> {
+//            Arrays.stream(center).forEach(d -> System.out.print(d + " "));
+//            System.out.println();
+//        });
         return result;
     }
 
@@ -141,9 +202,32 @@ public class MyKmeansUtil {
             System.out.println("||randomPickCenters|| current counts : " + chosenIndex.size());
         }
         System.out.println("||randomPickCenters|| random index generating accomplished!");
-        System.out.print("||randomPickCenters|| indexs : ");
-        chosenIndex.forEach(i -> System.out.print(i + " "));
+        System.out.println("||randomPickCenters|| centers : ");
+        chosenIndex.forEach(i -> {
+            System.out.print("index " + i + " : ");
+            Arrays.stream(data.sample[i]).forEach(d -> System.out.print(d + " "));
+            System.out.println();
+        });
         System.out.println(); // 换行
         return new ArrayList<>(chosenIndex);
+    }
+
+    public void printGroupedSample(Integer[] labels, Double[][] sampleSet, int k) {
+        List<Set<Double[]>> groups = separateSamples(labels, sampleSet, k);
+        System.out.println(
+                "=============================\n" +
+                        "==== sample groups below ====\n" +
+                        "=============================\n");
+        for (int i = 0; i < groups.size(); i++) {
+            System.out.println("\n\n -- Group " + (i + 1) + " --\n" +
+                    " -- Counts: " + groups.get(i).size() + " --\n\n");
+            groups.get(i).forEach(sample -> {
+                Arrays.stream(sample).forEach(d -> {
+                    System.out.print(d + " ");
+                });
+                System.out.println();
+            });
+        }
+        System.out.println("\n============= DONE =============");
     }
 }
