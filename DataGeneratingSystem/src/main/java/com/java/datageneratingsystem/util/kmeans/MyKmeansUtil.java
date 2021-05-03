@@ -3,7 +3,6 @@ package com.java.datageneratingsystem.util.kmeans;
 import org.springframework.stereotype.Component;
 
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.*;
 
 @Component

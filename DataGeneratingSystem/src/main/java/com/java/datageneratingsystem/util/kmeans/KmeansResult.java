@@ -1,14 +1,11 @@
 package com.java.datageneratingsystem.util.kmeans;
 
-import org.springframework.data.relational.core.sql.In;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class KmeansResult {
-    public int attempts;
-    public double criteriaBreakCondition;
+
     public int k;
 
     public List<Double[]> finalCenters;
