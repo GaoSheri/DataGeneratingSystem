@@ -132,7 +132,7 @@ public class MyKmeansUtil {
         return e;
     }
 
-    private Double distance(Double[] pa, Double[] pb, int dim) {
+    public Double distance(Double[] pa, Double[] pb, int dim) {
         // 欧氏距离
         double temp = 0.0D;
         for (int i = 0; i < dim; i++) {
