@@ -13,11 +13,11 @@ public class DataShape {
         minValues = new Double[dim];
     }
 
-    public void setUpRange(int dimIndex, Double max, Double min) throws Exception {
+    public void setUpRange(int dimIndex, Double min, Double max) throws Exception {
         if (max < min)
             throw new Exception("max value should greater than min value!");
-        maxValues[dimIndex] = max;
         minValues[dimIndex] = min;
+        maxValues[dimIndex] = max;
     }
 
     public Double[] getRangeOfDim(int dimIndex) {
@@ -30,7 +30,7 @@ public class DataShape {
     public Double getCrossDist() {
         double result = 0.0D;
         for (int i = 0; i < dim; i++) {
-            double temp = maxValues[dim] - minValues[dim];
+            double temp = maxValues[i] - minValues[i];
             temp *= temp;
             result += temp;
         }

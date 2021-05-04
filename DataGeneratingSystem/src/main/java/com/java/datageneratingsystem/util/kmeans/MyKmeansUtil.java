@@ -260,4 +260,8 @@ public class MyKmeansUtil {
         }
         System.out.println("\n============= DONE =============");
     }
+
+    public Double getBestE() {
+        return eList.stream().min(Double::compareTo).get();
+    }
 }
